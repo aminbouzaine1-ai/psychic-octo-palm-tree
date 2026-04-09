@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 Robot Control</title>
+
+  <style>
+    body {
+      background: #0b1220;
+      color: #fff;
+      font-family: Arial;
+      text-align: center;
+    }
+
+    h1 {
+      color: #00eaff;
+    }
+
+    button {
+      width: 200px;
+      height: 50px;
+      margin: 10px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: #ff6a00;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ff8c42;
+    }
+
+    #result {
+      margin-top: 20px;
+      color: #00ffcc;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🤖 ESP32 Robot Control</h1>
+
+<h2>Manual Control</h2>
+
+<button onclick="cmd('forward')">Forward</button><br>
+<button onclick="cmd('left')">Left</button>
+<button onclick="cmd('stop')">Stop</button>
+<button onclick="cmd('right')">Right</button><br>
+<button onclick="cmd('backward')">Back</button><br>
+
+<h2>Modes</h2>
+<button onclick="cmd('auto')">Auto Mode</button>
+<button onclick="cmd('manual')">Manual Mode</button>
+
+<h2>🎤 Voice Command</h2>
+<button onclick="voice()">Activate Microphone</button>
+
+<p id="result">Command: none</p>
+
+<p>
+Words EN: forward • back • left • right • stop • auto • manual
+</p>
+
+<script>
+function cmd(c){
+  fetch("/" + c);
+}
+
+// 🎤 Voice recognition
+function voice(){
+  var rec = new webkitSpeechRecognition();
+
+  rec.lang = "en-US"; // English language
+
+  rec.onerror = function(e){
+    alert("Microphone error: " + e.error);
+  };
+
+  rec.onresult = function(e){
+    let text = e.results[0][0].transcript.toLowerCase();
+
+    document.getElementById("result").innerText = "Command: " + text;
+
+    if(text.includes("forward")) cmd("forward");
+    else if(text.includes("back")) cmd("backward");
+    else if(text.includes("left")) cmd("left");
+    else if(text.includes("right")) cmd("right");
+    else if(text.includes("stop")) cmd("stop");
+    else if(text.includes("auto")) cmd("auto");
+    else if(text.includes("manual")) cmd("manual");
+  };
+
+  rec.start();
+}
+</script>
+
+</body>
+</html>
