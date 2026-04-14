@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 Robot Car</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+:root{
+  --bg:#07080f;--panel:#0b0f1a;--accent:#00e5ff;--accent2:#ff5722;
+  --green:#00e676;--red:#ff1744;--yellow:#ffd600;
+  --text:#cfd8e8;--muted:#3a5068;--border:#162030;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%,#0a1f3a 0%,transparent 70%),
+    repeating-linear-gradient(0deg,transparent,transparent 39px,#0d1520 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,#0d1520 40px);
+}
+header{text-align:center;padding:22px 10px 6px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.3rem,5vw,2.2rem);
+  color:var(--accent);letter-spacing:.14em;
+  text-shadow:0 0 24px rgba(0,229,255,.5);
+}
+header p{font-size:.7rem;color:var(--muted);letter-spacing:.25em;margin-top:3px;}
+.ip-bar{width:min(96vw,880px);padding:0 8px 12px;}
+.ip-inner{
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.ip-inner input{
+  flex:1;min-width:130px;background:#050810;border:1px solid var(--border);
+  color:var(--text);padding:8px 10px;border-radius:6px;
+  font-family:'Share Tech Mono',monospace;font-size:.85rem;
+}
+.ip-inner input:focus{outline:none;border-color:var(--accent);}
+.ip-btn{
+  padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;
+  cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;
+  letter-spacing:.1em;white-space:nowrap;
+}
+.led{width:10px;height:10px;border-radius:50%;background:#1a2030;flex-shrink:0;transition:all .3s;}
+.led.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.led.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+#conn-txt{font-size:.7rem;color:var(--muted);}
+.grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:14px;width:min(96vw,880px);padding:0 8px 28px;
+}
+@media(max-width:600px){.grid{grid-template-columns:1fr;}}
+.card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:18px;position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+.card-title{
+  font-family:'Orbitron',sans-serif;font-size:.68rem;letter-spacing:.18em;
+  color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:7px;
+}
+.card-title.org{color:var(--accent2);}
+.dpad{
+  display:grid;grid-template-columns:repeat(3,68px);
+  grid-template-rows:repeat(3,68px);gap:7px;
+  justify-content:center;margin:0 auto 4px;
+}
+.dbtn{
+  border:none;cursor:pointer;border-radius:10px;
+  font-size:1.5rem;transition:all .1s;user-select:none;touch-action:none;
+  background:#0d1525;border:1px solid #1a2d45;color:var(--text);
+}
+.dbtn:hover{border-color:var(--accent);color:var(--accent);background:#111e30;}
+.dbtn.active,.dbtn:active{
+  background:var(--accent);color:#000;border-color:var(--accent);
+  box-shadow:0 0 18px rgba(0,229,255,.5);
+}
+.dbtn-stop{background:#120808;border-color:#3a0a0a;color:var(--red);}
+.dbtn-stop:hover{border-color:var(--red);background:#1a0808;}
+.dbtn-stop.active,.dbtn-stop:active{background:var(--red);color:#fff;}
+.hint{text-align:center;font-size:.66rem;color:#253545;margin-top:5px;letter-spacing:.06em;}
+.spd-wrap{margin-top:14px;}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;height:5px;}
+.spd-val{text-align:center;font-size:1rem;color:var(--accent);margin-top:5px;}
+.mode-row{display:flex;gap:9px;margin-top:4px;}
+.mbtn{
+  flex:1;padding:11px 6px;border:1px solid var(--border);border-radius:8px;
+  background:#0d1525;color:var(--text);cursor:pointer;
+  font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.1em;transition:all .15s;
+}
+.mbtn.on{
+  background:var(--accent2);border-color:var(--accent2);color:#fff;
+  box-shadow:0 0 14px rgba(255,87,34,.35);
+}
+#radar{display:block;margin:0 auto;width:100%;max-width:260px;}
+.dist-num{text-align:center;font-size:1.4rem;color:var(--green);margin-top:4px;}
+.dist-num small{font-size:.7rem;color:var(--muted);}
+.srow{
+  display:flex;justify-content:space-between;
+  font-size:.78rem;padding:6px 0;border-bottom:1px solid var(--border);
+}
+.srow:last-child{border:none;}
+.sval{color:var(--accent);}
+/* Voice */
+.mic-btn{
+  width:100%;padding:15px;border-radius:9px;
+  border:2px solid var(--accent2);background:transparent;
+  color:var(--accent2);cursor:pointer;
+  font-family:'Orbitron',sans-serif;font-size:.78rem;letter-spacing:.12em;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.mic-btn.on{background:var(--accent2);color:#fff;animation:pulse 1.1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,87,34,.7);}50%{box-shadow:0 0 0 14px rgba(255,87,34,0);}}
+.vlog{
+  margin-top:10px;font-size:.78rem;min-height:38px;
+  background:#050810;border-radius:6px;padding:9px 10px;
+  border:1px solid var(--border);transition:color .2s;color:var(--muted);
+}
+.vwords{font-size:.67rem;color:#253545;margin-top:9px;line-height:1.9;}
+.vwords b{color:#3a6a8a;}
+/* Tap fallback */
+.tap-grid{display:none;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:8px;}
+.tbtn{
+  padding:11px 4px;border-radius:7px;cursor:pointer;
+  font-family:'Orbitron',sans-serif;font-size:.58rem;
+  letter-spacing:.07em;background:#0d1525;border:1px solid;transition:all .1s;
+}
+.tbtn:active{filter:brightness(1.5);}
+/* Wiring */
+.wire{font-size:.71rem;line-height:2;color:#3a6a8a;}
+.wire b{color:var(--accent);}
+.wire .ob{color:var(--accent2);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ESP32 ROBOT CAR</h1>
+  <p>WIFI &nbsp;·&nbsp; VOICE &nbsp;·&nbsp; ULTRASONIC</p>
+</header>
+
+<div class="ip-bar">
+  <div class="ip-inner">
+    <span class="led" id="led"></span>
+    <span style="font-size:.68rem;color:var(--muted);white-space:nowrap;">ESP32 IP :</span>
+    <input type="text" id="esp-ip" placeholder="192.168.1.xx"
+           autocomplete="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter')saveIP()">
+    <button class="ip-btn" onclick="saveIP()">CONNECT</button>
+    <span id="conn-txt">Not configured</span>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- CARD 1 : Manual Control -->
+  <div class="card">
+    <div class="card-title">🎮 MANUAL CONTROL</div>
+    <div class="dpad">
+      <div></div>
+      <button class="dbtn" id="d-fwd"
+        onpointerdown="hold('AVANT')" onpointerup="release()" onpointerleave="release()">▲</button>
+      <div></div>
+      <button class="dbtn" id="d-left"
+        onpointerdown="hold('GAUCHE')" onpointerup="release()" onpointerleave="release()">◄</button>
+      <button class="dbtn dbtn-stop" id="d-stop" onclick="sendCmd('STOP')">■</button>
+      <button class="dbtn" id="d-right"
+        onpointerdown="hold('DROITE')" onpointerup="release()" onpointerleave="release()">►</button>
+      <div></div>
+      <button class="dbtn" id="d-back"
+        onpointerdown="hold('ARRIERE')" onpointerup="release()" onpointerleave="release()">▼</button>
+      <div></div>
+    </div>
+    <p class="hint">Keyboard : ↑ ↓ ← →  ·  Space = STOP</p>
+    <div class="spd-wrap">
+      <div class="card-title" style="margin-top:14px;margin-bottom:6px;">⚡ SPEED</div>
+      <input type="range" id="spd" min="0" max="255" value="200" step="1"
+             oninput="setSpeed(this.value)">
+      <div class="spd-val" id="spd-val">200 / 255</div>
+    </div>
+  </div>
+
+  <!-- CARD 2 : Mode + Radar + Status -->
+  <div class="card">
+    <div class="card-title">🔧 OPERATION MODE</div>
+    <div class="mode-row">
+      <button class="mbtn on" id="m-manual" onclick="setMode('MANUEL')">MANUAL</button>
+      <button class="mbtn"    id="m-auto"   onclick="setMode('AUTO')">AUTO RADAR</button>
+    </div>
+
+    <div class="card-title" style="margin-top:18px;">📡 ULTRASONIC RADAR</div>
+    <canvas id="radar" width="260" height="140"></canvas>
+    <div class="dist-num" id="dist-num">— <small>cm</small></div>
+
+    <div class="card-title" style="margin-top:14px;">📊 STATUS</div>
+    <div class="srow">
+      <span>Connection</span>
+      <span class="sval" id="s-conn">
+        <span style="width:7px;height:7px;border-radius:50%;background:#333;
+                     display:inline-block;margin-right:4px;"></span>Waiting
+      </span>
+    </div>
+    <div class="srow"><span>Last command</span><span class="sval" id="s-cmd">—</span></div>
+    <div class="srow"><span>Mode</span>        <span class="sval" id="s-mode">MANUAL</span></div>
+    <div class="srow"><span>Speed</span>       <span class="sval" id="s-spd">200</span></div>
+    <div class="srow"><span>Distance</span>    <span class="sval" id="s-dist">—</span></div>
+  </div>
+
+  <!-- CARD 3 : Voice -->
+  <div class="card">
+    <div class="card-title org">🎙️ VOICE COMMAND &nbsp;<span style="font-size:.55rem;color:var(--muted);">en-US</span></div>
+
+    <button class="mic-btn" id="mic-btn" onclick="toggleVoice()">
+      <span id="mic-icon">🎤</span>
+      <span id="mic-label">ACTIVATE MICROPHONE</span>
+    </button>
+
+    <div class="tap-grid" id="tap-grid"></div>
+
+    <div class="vlog" id="vlog">Waiting for activation...</div>
+
+    <div class="vwords">
+      Say : <b>forward</b> · <b>back</b> · <b>left</b> · <b>right</b> ·
+            <b>stop</b> · <b>auto</b> · <b>manual</b>
+    </div>
+  </div>
+
+  <!-- CARD 4 : Wiring -->
+  <div class="card">
+    <div class="card-title">🔌 ESP32 WIRING</div>
+    <div class="wire">
+      <div>IN1 → GPIO <b>26</b> &nbsp;|&nbsp; IN2 → GPIO <b>27</b></div>
+      <div>ENA → GPIO <b>14</b> &nbsp;(PWM — right motor)</div>
+      <div>IN3 → GPIO <b>25</b> &nbsp;|&nbsp; IN4 → GPIO <b>33</b></div>
+      <div>ENB → GPIO <b>32</b> &nbsp;(PWM — left motor)</div>
+      <div style="margin-top:6px;">
+        TRIG → GPIO <span class="ob"><b>5</b></span> &nbsp;|&nbsp;
+        ECHO → GPIO <span class="ob"><b>18</b></span>
+      </div>
+      <div style="margin-top:6px;color:#2a5a3a;">Obstacle threshold : 20 cm</div>
+      <div>L298N / L293D compatible</div>
+      <div style="margin-top:6px;color:#253545;">Core v3.x — ledcAttach API</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════
+let espIP = localStorage.getItem('esp32ip') || '';
+let spd   = 200, mode = 'MANUEL', holdTm = null;
+if (espIP) { document.getElementById('esp-ip').value = espIP; ping(); }
+
+// ════════════════════════════════════════════════
+//  CONNECTION
+// ════════════════════════════════════════════════
+function saveIP() {
+  espIP = document.getElementById('esp-ip').value.trim().replace(/\/+$/, '');
+  localStorage.setItem('esp32ip', espIP);
+  ping();
+}
+
+async function ping() {
+  setLed('...');
+  if (!espIP) { setLed('off'); return; }
+  try {
+    const r = await fetch('http://'+espIP+'/status', {signal:AbortSignal.timeout(3000)});
+    if (!r.ok) throw 0;
+    updateStatus(await r.json());
+    setLed('ok');
+  } catch { setLed('err'); }
+}
+
+function setLed(s) {
+  const led = document.getElementById('led');
+  const txt = document.getElementById('conn-txt');
+  led.className = 'led'+(s==='ok'?' ok':s==='err'?' err':'');
+  const styles = {
+    ok:  [espIP+' ✓', 'var(--green)'],
+    err: ['Offline',  'var(--red)'],
+    off: ['Not configured', 'var(--muted)'],
+    '...':['Connecting...', 'var(--muted)'],
+  };
+  const [t,c] = styles[s]||styles['off'];
+  txt.textContent = t; txt.style.color = c;
+}
+
+// ════════════════════════════════════════════════
+//  MOTOR COMMANDS
+// ════════════════════════════════════════════════
+async function sendCmd(dir) {
+  if (mode === 'AUTO' && dir !== 'STOP') return;
+  flash(dir);
+  document.getElementById('s-cmd').textContent = dir;
+  if (!espIP) return;
+  try {
+    const r = await fetch(`http://${espIP}/cmd?dir=${dir}&vitesse=${spd}`,
+                          {signal:AbortSignal.timeout(2000)});
+    if (r.ok) updateStatus(await r.json());
+  } catch {}
+}
+
+function hold(dir) { sendCmd(dir); holdTm = setInterval(()=>sendCmd(dir), 180); }
+function release()  { clearInterval(holdTm); holdTm = null; sendCmd('STOP'); }
+
+async function setSpeed(v) {
+  spd = parseInt(v);
+  document.getElementById('spd-val').textContent = v+' / 255';
+  document.getElementById('s-spd').textContent   = v;
+  if (!espIP) return;
+  try { await fetch(`http://${espIP}/cmd?vitesse=${v}`, {signal:AbortSignal.timeout(2000)}); } catch {}
+}
+
+async function setMode(m) {
+  mode = m;
+  document.getElementById('m-manual').classList.toggle('on', m==='MANUEL');
+  document.getElementById('m-auto').classList.toggle('on',   m==='AUTO');
+  document.getElementById('s-mode').textContent = m==='AUTO' ? 'AUTO' : 'MANUAL';
+  if (!espIP) return;
+  try { await fetch(`http://${espIP}/cmd?mode=${m}`, {signal:AbortSignal.timeout(2000)}); } catch {}
+}
+
+function flash(dir) {
+  const map = {AVANT:'d-fwd',ARRIERE:'d-back',GAUCHE:'d-left',DROITE:'d-right',STOP:'d-stop'};
+  const b = document.getElementById(map[dir]);
+  if (!b) return;
+  b.classList.add('active');
+  setTimeout(()=>b.classList.remove('active'), 220);
+}
+
+// ════════════════════════════════════════════════
+//  STATUS POLLING
+// ════════════════════════════════════════════════
+function updateStatus(d) {
+  if (!d) return;
+  document.getElementById('s-conn').innerHTML =
+    '<span style="width:7px;height:7px;border-radius:50%;background:var(--green);'+
+    'display:inline-block;margin-right:4px;animation:blink 1.2s infinite;"></span>ONLINE';
+  document.getElementById('s-cmd').textContent  = d.cmd || '—';
+  document.getElementById('s-mode').textContent = d.auto ? 'AUTO' : 'MANUAL';
+  document.getElementById('s-spd').textContent  = d.vitesse || '—';
+  const dist = parseFloat(d.distance);
+  const ds = dist > 900 ? '∞' : dist.toFixed(1);
+  document.getElementById('s-dist').textContent   = ds+' cm';
+  document.getElementById('dist-num').innerHTML   = ds+' <small>cm</small>';
+  drawRadar(dist);
+}
+
+setInterval(async () => {
+  if (!espIP) return;
+  try {
+    const r = await fetch('http://'+espIP+'/status', {signal:AbortSignal.timeout(2000)});
+    if (r.ok) { updateStatus(await r.json()); setLed('ok'); }
+    else setLed('err');
+  } catch { setLed('err'); }
+}, 1000);
+
+// ════════════════════════════════════════════════
+//  RADAR CANVAS
+// ════════════════════════════════════════════════
+function drawRadar(dist) {
+  const c=document.getElementById('radar'), ctx=c.getContext('2d');
+  const W=c.width, H=c.height, cx=W/2, cy=H-10, R=H-20;
+  ctx.clearRect(0,0,W,H);
+  [.25,.5,.75,1].forEach(f=>{
+    ctx.beginPath(); ctx.arc(cx,cy,R*f,Math.PI,0);
+    ctx.strokeStyle=f===1?'#162030':'#0d1520'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#253545'; ctx.font='9px Share Tech Mono';
+    ctx.fillText(Math.round(300*f)+'cm', cx+R*f+2, cy-2);
+  });
+  [-60,-30,0,30,60].forEach(a=>{
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.sin(a*Math.PI/180), cy-R*Math.cos(a*Math.PI/180));
+    ctx.strokeStyle='#0d1520'; ctx.lineWidth=1; ctx.stroke();
+  });
+  const ratio = Math.min(dist,300)/300;
+  const col   = dist<20?'#ff1744':dist<50?'#ff5722':'#00e676';
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R*ratio,Math.PI,0); ctx.closePath();
+  ctx.fillStyle = dist<20?'rgba(255,23,68,.14)':dist<50?'rgba(255,87,34,.11)':'rgba(0,230,118,.08)';
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy-R*ratio, 5, 0, Math.PI*2);
+  ctx.fillStyle=col; ctx.shadowBlur=14; ctx.shadowColor=col;
+  ctx.fill(); ctx.shadowBlur=0;
+}
+drawRadar(999);
+
+// ════════════════════════════════════════════════
+//  KEYBOARD
+// ════════════════════════════════════════════════
+const KMAP = {ArrowUp:'AVANT',ArrowDown:'ARRIERE',ArrowLeft:'GAUCHE',ArrowRight:'DROITE',' ':'STOP'};
+document.addEventListener('keydown', e=>{ if(KMAP[e.key]){e.preventDefault();sendCmd(KMAP[e.key]);}});
+document.addEventListener('keyup',   e=>{ if(KMAP[e.key]&&KMAP[e.key]!=='STOP') sendCmd('STOP');});
+
+// ════════════════════════════════════════════════
+//  VOICE — English en-US
+//  Keywords that map to robot commands
+// ════════════════════════════════════════════════
+const VOICE_MAP = [
+  { c:'AVANT',   kw:['forward','go forward','move forward','go ahead','ahead','go'] },
+  { c:'ARRIERE', kw:['back','backward','backwards','go back','reverse','back up'] },
+  { c:'GAUCHE',  kw:['left','go left','turn left','move left'] },
+  { c:'DROITE',  kw:['right','go right','turn right','move right'] },
+  { c:'STOP',    kw:['stop','halt','freeze','hold','pause','brake','stay'] },
+  { c:'AUTO',    kw:['auto','automatic','radar','auto mode'] },
+  { c:'MANUEL',  kw:['manual','manual mode'] },
+];
+
+let recog=null, listening=false;
+
+function vlog(msg, col) {
+  const el = document.getElementById('vlog');
+  el.textContent = msg;
+  el.style.color  = col || 'var(--muted)';
+}
+
+function setMicUI(on) {
+  document.getElementById('mic-btn').classList.toggle('on', on);
+  document.getElementById('mic-icon').textContent  = on ? '🔴' : '🎤';
+  document.getElementById('mic-label').textContent = on ? 'LISTENING...' : 'ACTIVATE MICROPHONE';
+}
+
+function toggleVoice() {
+  const tap = document.getElementById('tap-grid');
+  if (tap.style.display === 'grid') {
+    tap.style.display = 'none';
+    document.getElementById('mic-btn').style.display = 'flex';
+    vlog('Ready — press to speak');
+    return;
+  }
+  if (listening) { stopVoice(); return; }
+  startVoice();
+}
+
+function startVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    vlog('Speech API not supported. Use Chrome.', 'var(--red)');
+    return;
+  }
+  recog = new SR();
+  recog.lang             = 'en-US';   // ← English
+  recog.continuous       = true;
+  recog.interimResults   = true;
+  recog.maxAlternatives  = 5;
+
+  recog.onstart = () => {
+    listening = true;
+    setMicUI(true);
+    vlog('Speak now... (forward / back / left / right / stop)');
+  };
+
+  recog.onend = () => {
+    if (listening) { try { recog.start(); } catch(e){} }  // auto-restart
+    else { setMicUI(false); }
+  };
+
+  recog.onerror = e => {
+    if (e.error === 'not-allowed') {
+      vlog('Microphone denied — allow in browser settings', 'var(--red)');
+      listening = false; setMicUI(false);
+    } else if (e.error === 'network') {
+      vlog('No internet — switching to tap buttons', 'var(--yellow)');
+      listening = false; setMicUI(false);
+      setTimeout(showTapMode, 800);
+    } else if (e.error === 'no-speech') {
+      vlog('No speech detected, try again...');
+    } else {
+      vlog('Error: '+e.error, 'var(--accent2)');
+    }
+  };
+
+  recog.onresult = e => {
+    const idx = e.results.length - 1;
+    // Gather up to maxAlternatives transcripts
+    const alts = [];
+    for (let i = 0; i < e.results[idx].length; i++)
+      alts.push(e.results[idx][i].transcript.toLowerCase().trim());
+
+    if (!e.results[idx].isFinal) {
+      vlog('… ' + alts[0]);
+      return;
+    }
+
+    // Try every alternative against every keyword
+    for (const text of alts) {
+      for (const {c, kw} of VOICE_MAP) {
+        if (kw.some(k => text === k || text.includes(k))) {
+          vlog('✓ "' + text + '"  →  ' + c, 'var(--green)');
+          if (c === 'AUTO' || c === 'MANUEL') { setMode(c); return; }
+          sendCmd(c);
+          return;
+        }
+      }
+    }
+    vlog('"' + alts[0] + '" — not recognized', 'var(--accent2)');
+  };
+
+  try { recog.start(); }
+  catch(e) { vlog('Cannot start microphone', 'var(--red)'); }
+}
+
+function stopVoice() {
+  listening = false;
+  if (recog) { try { recog.stop(); } catch(e){} }
+  setMicUI(false);
+  vlog('Microphone stopped');
+}
+
+// ── Tap fallback (shown when Speech API has no internet) ────
+function showTapMode() {
+  document.getElementById('mic-btn').style.display = 'none';
+  const g = document.getElementById('tap-grid');
+  g.style.display = 'grid';
+
+  const btns = [
+    {l:'▲ FORWARD', c:'AVANT',   col:'#00e5ff'},
+    {l:'▼ BACK',    c:'ARRIERE', col:'#00e5ff'},
+    {l:'◄ LEFT',    c:'GAUCHE',  col:'#42a5f5'},
+    {l:'► RIGHT',   c:'DROITE',  col:'#42a5f5'},
+    {l:'■ STOP',    c:'STOP',    col:'#ff1744'},
+    {l:'⚙ AUTO',   c:'AUTO',    col:'#ff5722'},
+  ];
+
+  g.innerHTML = btns.map(b =>
+    `<button class="tbtn" onclick="tapBtn('${b.c}')"
+      style="color:${b.col};border-color:${b.col}55;">${b.l}</button>`
+  ).join('') +
+  `<button class="tbtn" onclick="retryVoice()"
+    style="grid-column:span 3;color:var(--muted);border-color:var(--border);font-size:.55rem;">
+    🎤 RETRY MICROPHONE
+  </button>`;
+
+  vlog('Tap mode active (offline)', 'var(--yellow)');
+}
+
+function tapBtn(c) {
+  vlog('Tap → ' + c, 'var(--green)');
+  if (c === 'AUTO' || c === 'MANUEL') { setMode(c); return; }
+  sendCmd(c);
+}
+
+function retryVoice() {
+  document.getElementById('tap-grid').style.display = 'none';
+  document.getElementById('mic-btn').style.display  = 'flex';
+  vlog('Waiting for activation...');
+}
+</script>
+</body>
+</html>
