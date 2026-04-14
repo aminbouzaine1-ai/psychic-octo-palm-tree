@@ -27,28 +27,44 @@ header h1{
   color:var(--accent);letter-spacing:.14em;
   text-shadow:0 0 24px rgba(0,229,255,.5);
 }
-header p{font-size:.7rem;color:var(--muted);letter-spacing:.25em;margin-top:3px;}
-.ip-bar{width:min(96vw,880px);padding:0 8px 12px;}
-.ip-inner{
-  background:var(--panel);border:1px solid var(--border);border-radius:10px;
-  padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-}
-.ip-inner input{
-  flex:1;min-width:130px;background:#050810;border:1px solid var(--border);
-  color:var(--text);padding:8px 10px;border-radius:6px;
-  font-family:'Share Tech Mono',monospace;font-size:.85rem;
-}
-.ip-inner input:focus{outline:none;border-color:var(--accent);}
-.ip-btn{
-  padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;
-  cursor:pointer;font-family:'Orbitron',sans-serif;font-size:.6rem;
-  letter-spacing:.1em;white-space:nowrap;
-}
-.led{width:10px;height:10px;border-radius:50%;background:#1a2030;flex-shrink:0;transition:all .3s;}
-.led.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
-.led.err{background:var(--red);box-shadow:0 0 6px var(--red);}
-#conn-txt{font-size:.7rem;color:var(--muted);}
-.grid{
+
+  .ip-banner{width:min(96vw,860px);padding:0 8px 10px;}
+  .ip-inner{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ip-label{font-size:.68rem;color:#4a6a8a;letter-spacing:.12em;white-space:nowrap;}
+  .ip-inner input{flex:1;min-width:140px;background:#060b13;border:1px solid var(--border);
+                  color:var(--text);padding:8px 10px;border-radius:6px;
+                  font-family:'Share Tech Mono',monospace;font-size:.85rem;}
+  .ip-inner input:focus{outline:none;border-color:var(--accent);}
+  .ip-save{padding:8px 14px;background:var(--accent);color:#000;border:none;
+           border-radius:6px;cursor:pointer;font-family:'Orbitron',sans-serif;
+           font-size:.6rem;letter-spacing:.1em;white-space:nowrap;}
+  .conn-dot{width:10px;height:10px;border-radius:50%;background:#333;flex-shrink:0;
+            transition:background .3s;}
+  .conn-dot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+  .conn-dot.err{background:var(--red);}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  .grid{
   display:grid;grid-template-columns:1fr 1fr;
   gap:14px;width:min(96vw,880px);padding:0 8px 28px;
 }
